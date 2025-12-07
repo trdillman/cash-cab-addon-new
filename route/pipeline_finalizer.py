@@ -252,9 +252,47 @@ def _ensure_profile_curve(scene: Optional[bpy.types.Scene]) -> Optional[bpy.type
     contains 'profile'. If that also fails, creates a simple procedural
     _profile_curve so CAR_TRAIL always has a usable bevel object.
     """
+    # 1. Check existing object named "_profile_curve"
     profile = bpy.data.objects.get("_profile_curve")
     if profile is not None:
+        if profile.type == 'CURVE':
+            # It is a valid curve, ensure it is linked and return it
+            if scene:
+                root = getattr(scene, "collection", None)
+                if root and profile.name not in {o.name for o in root.objects}:
+                    try:
+                        root.objects.link(profile)
+                    except RuntimeError:
+                        pass
+            return profile
+        else:
+            # Found an object with the name but it's not a curve (e.g. Mesh, Empty).
+            # Rename it so we can find or import the correct one.
+            print(f"[BLOSM] WARN Found invalid '_profile_curve' (type={profile.type}), renaming to '_profile_curve_INVALID'")
+            profile.name = "_profile_curve_INVALID"
+            # Proceed to find a valid one...
+
+    # 2. Look for existing valid candidates (e.g. _profile_curve.001) that might have been imported already
+    # or exist from a previous run.
+    candidates = []
+    for obj in bpy.data.objects:
+        if obj.type == 'CURVE' and "profile" in obj.name.lower() and "_curve" in obj.name.lower():
+            candidates.append(obj)
+    
+    # If we found candidates, pick the best one (shortest name usually implies original)
+    if candidates:
+        candidates.sort(key=lambda o: len(o.name))
+        profile = candidates[0]
+        print(f"[BLOSM] Found alternative profile curve: {profile.name}")
+        if scene:
+            root = getattr(scene, "collection", None)
+            if root and profile.name not in {o.name for o in root.objects}:
+                try:
+                    root.objects.link(profile)
+                except RuntimeError:
+                    pass
         return profile
+
 
     path = route_assets.CAR_BLEND_PATH
     target_name = None
