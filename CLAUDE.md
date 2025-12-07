@@ -1,0 +1,1 @@
+- The Search tool is broken. You have to use different methods for searching for and in files. **IMPORTANT: The SEARCH TOOL is BROKEN. YOU CANNOT USE IT. IT WILL ALWAYS RETURN 0 RESULTS. USE OTHER METHODS.**
